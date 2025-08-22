@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Expense Tracker with Google Sheets</title>
+    <title>Expense Tracker</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
     <style>
         * {
             margin: 0;
@@ -12,14 +13,14 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -27,299 +28,207 @@
         .header {
             text-align: center;
             margin-bottom: 30px;
-            color: white;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
         }
 
-        .card {
+        .status {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .status.connected {
+            color: #059669;
+        }
+
+        .add-button {
+            width: 100%;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+        }
+
+        .add-button:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .form-container {
             background: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .form-container.hidden {
+            max-height: 0;
+            margin-bottom: 0;
+            box-shadow: none;
+        }
+
+        .form-container.visible {
+            max-height: 500px;
+        }
+
+        .expense-form {
+            padding: 20px;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #555;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.9rem;
         }
 
         .form-control {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e1e8ed;
+            padding: 12px;
+            border: 1px solid #d1d5db;
             border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
+            font-size: 1rem;
+            transition: border-color 0.2s;
         }
 
         .form-control:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            gap: 16px;
         }
 
-        .btn {
-            padding: 12px 25px;
+        .submit-btn {
+            background: #059669;
+            color: white;
             border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 500;
             border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: background 0.2s;
         }
 
-        .btn-primary {
-            background: linear-gradient(45deg, #667eea, #764ba2);
+        .submit-btn:hover {
+            background: #047857;
+        }
+
+        .cancel-btn {
+            background: #6b7280;
             color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background 0.2s;
         }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-success {
-            background: #27ae60;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #219a52;
-        }
-
-        .btn-danger {
-            background: #e74c3c;
-            color: white;
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-
-        .btn-danger:hover {
-            background: #c0392b;
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .summary-card {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 25px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-        }
-
-        .summary-card h3 {
-            font-size: 1.2rem;
-            margin-bottom: 10px;
-            opacity: 0.9;
-        }
-
-        .summary-card .amount {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 5px;
+        .cancel-btn:hover {
+            background: #4b5563;
         }
 
         .expense-list {
-            max-height: 400px;
-            overflow-y: auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
 
         .expense-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f1f5f9;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px;
-            border-bottom: 1px solid #eee;
-            transition: background-color 0.3s;
+            transition: background 0.2s;
         }
 
         .expense-item:hover {
-            background-color: #f8f9fa;
+            background: #f8fafc;
         }
 
-        .expense-info {
+        .expense-item:last-child {
+            border-bottom: none;
+        }
+
+        .expense-details {
             flex: 1;
         }
 
         .expense-amount {
-            font-weight: bold;
-            color: #e74c3c;
+            font-weight: 600;
+            color: #dc2626;
             font-size: 1.1rem;
         }
 
-        .expense-category {
-            color: #667eea;
-            font-weight: 600;
+        .expense-info {
+            display: flex;
+            gap: 12px;
+            margin-top: 4px;
+            font-size: 0.9rem;
+            color: #64748b;
         }
 
-        .expense-description {
-            color: #666;
-            font-size: 0.9rem;
+        .expense-category {
+            color: #3b82f6;
+            font-weight: 500;
         }
 
         .expense-date {
-            color: #999;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
+            color: #9ca3af;
         }
 
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #eee;
-        }
-
-        .tab {
-            padding: 12px 20px;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-
-        .tab.active {
-            border-bottom-color: #667eea;
-            color: #667eea;
-        }
-
-        .tab:hover {
-            background-color: #f8f9fa;
-        }
-
-        .category-summary {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .category-item {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
-        }
-
-        .setup-section {
-            background: #fff3cd;
-            border: 2px solid #ffc107;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .setup-section h3 {
-            color: #856404;
-            margin-bottom: 15px;
-        }
-
-        .setup-section p {
-            color: #664d03;
-            margin-bottom: 10px;
-            line-height: 1.6;
-        }
-
-        .status-indicator {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-left: 10px;
-        }
-
-        .status-connected {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-disconnected {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .loading {
+        .empty-state {
             text-align: center;
-            padding: 20px;
-            color: #666;
+            padding: 60px 20px;
+            color: #9ca3af;
         }
 
-        .spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        .setup-notice {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #92400e;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-            }
-
-            .header h1 {
-                font-size: 2rem;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-
-            .summary-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .tabs {
-                overflow-x: auto;
-                white-space: nowrap;
-            }
-
-            .expense-item {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
-
-        .hidden {
-            display: none;
+        .setup-notice a {
+            color: #d97706;
+            text-decoration: underline;
         }
 
         .dropdown {
@@ -332,7 +241,7 @@
             left: 0;
             right: 0;
             background: white;
-            border: 1px solid #ddd;
+            border: 1px solid #d1d5db;
             border-top: none;
             border-radius: 0 0 8px 8px;
             max-height: 200px;
@@ -342,128 +251,85 @@
         }
 
         .dropdown-item {
-            padding: 10px 16px;
+            padding: 10px 12px;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: background 0.2s;
         }
 
         .dropdown-item:hover {
-            background-color: #f0f0f0;
+            background: #f3f4f6;
         }
 
-        .currency {
-            color: #27ae60;
-            font-weight: bold;
+        .hidden {
+            display: none !important;
         }
 
-        .setup-steps {
-            list-style: none;
-            counter-reset: step-counter;
+        @media (max-width: 640px) {
+            .container {
+                padding: 16px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .expense-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .expense-info {
+                flex-wrap: wrap;
+            }
         }
 
-        .setup-steps li {
-            counter-increment: step-counter;
-            margin-bottom: 15px;
-            padding-left: 30px;
-            position: relative;
-        }
-
-        .setup-steps li::before {
-            content: counter(step-counter);
-            position: absolute;
-            left: 0;
-            top: 0;
-            background: #667eea;
-            color: white;
-            width: 20px;
-            height: 20px;
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3b82f6;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
         }
 
-        .alert {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 8px;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        .alert-error {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
+        .sync-status {
+            font-size: 0.8rem;
+            margin-top: 4px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Expense Tracker</h1>
-            <p>Cloud-synced with Google Sheets</p>
-            <div id="connectionStatus">
-                <span id="statusText">Setting up...</span>
-                <span class="status-indicator status-disconnected" id="statusIndicator">Disconnected</span>
-            </div>
+            <h1>💰 Expense Tracker</h1>
+            <div class="status" id="statusText">Setting up...</div>
+            <div class="sync-status" id="syncStatus"></div>
         </div>
 
-        <!-- Setup Instructions -->
-        <div class="setup-section" id="setupSection">
-            <h3>🚀 Quick Setup Required (One-time only)</h3>
-            <p><strong>To sync your expenses with Google Sheets, follow these steps:</strong></p>
-            <ol class="setup-steps">
-                <li>Create a new Google Sheet in your Google Drive</li>
-                <li>Copy the Sheet ID from the URL (the long string between '/d/' and '/edit')</li>
-                <li>Make the sheet public: Share → Anyone with the link can view</li>
-                <li>Paste the Sheet ID below and click "Connect"</li>
-            </ol>
-            
-            <div class="form-group">
-                <label for="sheetId">Google Sheet ID:</label>
-                <input type="text" id="sheetId" class="form-control" placeholder="Your Sheet ID is pre-filled" value="1bXjz2YTPzGKemfzWQMmr1fbovZRU04B2soSJsJQ7G7Y">
-            </div>
-            <button class="btn btn-success" onclick="connectGoogleSheet()">Connect to Google Sheets</button>
-            
-            <div id="setupError" class="alert alert-error hidden"></div>
-            <div id="setupSuccess" class="alert alert-success hidden"></div>
+        <div class="setup-notice" id="setupNotice">
+            <strong>Quick Setup:</strong> Create a <a href="https://sheets.google.com" target="_blank">Google Sheet</a>, 
+            make it public (Share → Anyone with link can view), and replace the Sheet ID below.
         </div>
 
-        <!-- Summary Cards -->
-        <div class="summary-grid">
-            <div class="summary-card">
-                <h3>This Week</h3>
-                <div class="amount currency" id="weeklyAmount">₹0</div>
-                <div id="weeklyCount">0 expenses</div>
-            </div>
-            <div class="summary-card">
-                <h3>This Month</h3>
-                <div class="amount currency" id="monthlyAmount">₹0</div>
-                <div id="monthlyCount">0 expenses</div>
-            </div>
-            <div class="summary-card">
-                <h3>This Year</h3>
-                <div class="amount currency" id="yearlyAmount">₹0</div>
-                <div id="yearlyCount">0 expenses</div>
-            </div>
-            <div class="summary-card">
-                <h3>Total</h3>
-                <div class="amount currency" id="totalAmount">₹0</div>
-                <div id="totalCount">0 expenses</div>
-            </div>
-        </div>
+        <button class="add-button" id="addButton" onclick="toggleForm()">
+            + Add Expense
+        </button>
 
-        <!-- Add Expense Form -->
-        <div class="card">
-            <h2>Add New Expense</h2>
-            <form id="expenseForm">
+        <div class="form-container hidden" id="formContainer">
+            <form class="expense-form" id="expenseForm">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="amount">Amount (₹)</label>
@@ -490,171 +356,114 @@
 
                 <div class="form-group">
                     <label for="description">Description</label>
-                    <input type="text" id="description" class="form-control" placeholder="Brief description of the expense">
+                    <input type="text" id="description" class="form-control" placeholder="Brief description">
                 </div>
 
-                <button type="submit" class="btn btn-primary" id="addExpenseBtn">Add Expense</button>
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="submit-btn" id="submitBtn">Add Expense</button>
+                    <button type="button" class="cancel-btn" onclick="toggleForm()">Cancel</button>
+                </div>
             </form>
         </div>
 
-        <!-- Expense List and Analysis -->
-        <div class="card">
-            <div class="tabs">
-                <div class="tab active" data-tab="recent">Recent Expenses</div>
-                <div class="tab" data-tab="category">By Category</div>
-                <div class="tab" data-tab="monthly">Monthly View</div>
-            </div>
-
-            <div id="recentTab" class="tab-content">
-                <div id="loadingExpenses" class="loading hidden">
-                    <div class="spinner"></div> Loading expenses...
-                </div>
-                <div class="expense-list" id="expenseList"></div>
-            </div>
-
-            <div id="categoryTab" class="tab-content hidden">
-                <div class="category-summary" id="categorySummary"></div>
-            </div>
-
-            <div id="monthlyTab" class="tab-content hidden">
-                <div class="category-summary" id="monthlySummary"></div>
+        <div class="expense-list" id="expenseList">
+            <div class="empty-state">
+                <p>No expenses yet.</p>
+                <p style="margin-top: 8px; font-size: 0.85rem;">Click "Add Expense" to get started!</p>
             </div>
         </div>
     </div>
 
     <script>
-        // Indian expense categories and subcategories
+        // Indian expense categories
         const expenseCategories = {
-            'Food & Dining': ['Groceries', 'Restaurant', 'Street Food', 'Delivery', 'Sweets', 'Beverages', 'Milk & Dairy'],
-            'Transportation': ['Bus', 'Train', 'Auto/Taxi', 'Petrol', 'Bike Maintenance', 'Parking', 'Flight', 'Metro'],
-            'Shopping': ['Clothing', 'Electronics', 'Books', 'Personal Care', 'Gifts', 'Online Shopping', 'Medicines'],
-            'Bills & Utilities': ['Electricity', 'Internet', 'Mobile', 'Gas', 'Water', 'DTH/Cable', 'Maintenance'],
-            'Rent & Housing': ['House Rent', 'Security Deposit', 'Broker Fee', 'Furniture', 'Home Appliances'],
-            'Health & Fitness': ['Doctor Visit', 'Medicines', 'Gym', 'Health Insurance', 'Medical Tests', 'Dental'],
-            'Entertainment': ['Movies', 'Games', 'Subscription', 'Events', 'Travel', 'Sports'],
-            'Education': ['Course Fees', 'Books', 'Online Course', 'Certification', 'Stationery'],
-            'Personal Care': ['Salon/Parlor', 'Cosmetics', 'Clothing', 'Accessories', 'Grooming'],
-            'Family & Friends': ['Gifts', 'Functions', 'Festivals', 'Family Support', 'Celebrations'],
-            'Investments': ['Mutual Funds', 'Fixed Deposit', 'Gold', 'Stocks', 'Insurance Premium'],
-            'Miscellaneous': ['Bank Charges', 'ATM', 'Donations', 'Fines', 'Other']
+            'Food': ['Groceries', 'Restaurant', 'Delivery', 'Snacks'],
+            'Transport': ['Bus', 'Train', 'Taxi', 'Petrol', 'Metro'],
+            'Shopping': ['Clothing', 'Electronics', 'Books', 'Personal Care'],
+            'Bills': ['Electricity', 'Internet', 'Mobile', 'Rent'],
+            'Health': ['Doctor', 'Medicines', 'Gym'],
+            'Entertainment': ['Movies', 'Games', 'Events'],
+            'Other': ['ATM', 'Gifts', 'Miscellaneous']
         };
 
         let expenses = [];
-        let googleSheetId = localStorage.getItem('googleSheetId') || '1bXjz2YTPzGKemfzWQMmr1fbovZRU04B2soSJsJQ7G7Y';
+        let googleSheetId = '1bXjz2YTPzGKemfzWQMmr1fbovZRU04B2soSJsJQ7G7Y'; // Your sheet ID
         let isConnected = false;
+        let syncInterval;
 
-        // Initialize the app
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             setupDropdowns();
-            setupTabs();
             setDefaultDate();
-            
-            // Pre-fill with your sheet ID
-            document.getElementById('sheetId').value = googleSheetId;
-            
-            // Auto-connect to your sheet
-            if (googleSheetId) {
-                connectGoogleSheet();
-            }
+            connectToSheet();
+            startRealTimeSync();
         });
 
-        // Connect to Google Sheet
-        async function connectGoogleSheet() {
-            const sheetId = document.getElementById('sheetId').value.trim();
+        function toggleForm() {
+            const container = document.getElementById('formContainer');
+            const button = document.getElementById('addButton');
             
-            if (!sheetId) {
-                showError('Please enter a Google Sheet ID');
-                return;
-            }
-
-            // Update UI to show connecting state
-            updateConnectionStatus('Connecting...', false);
-            
-            try {
-                // Test connection by trying to read from the sheet
-                await initializeSheet(sheetId);
-                
-                googleSheetId = sheetId;
-                localStorage.setItem('googleSheetId', sheetId);
-                isConnected = true;
-                
-                document.getElementById('setupSection').classList.add('hidden');
-                updateConnectionStatus('Connected to Google Sheets', true);
-                showSuccess('Successfully connected to Google Sheets!');
-                
-                // Load existing data
-                await loadExpensesFromSheet();
-                updateSummary();
-                displayExpenses();
-                displayCategorySummary();
-                displayMonthlySummary();
-                
-            } catch (error) {
-                isConnected = false;
-                updateConnectionStatus('Connection Failed', false);
-                showError('Failed to connect: ' + error.message + '. Make sure the sheet is public and the ID is correct.');
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                container.classList.add('visible');
+                button.textContent = 'Cancel';
+                button.style.background = '#6b7280';
+                document.getElementById('amount').focus();
+            } else {
+                container.classList.add('hidden');
+                container.classList.remove('visible');
+                button.textContent = '+ Add Expense';
+                button.style.background = '#3b82f6';
+                document.getElementById('expenseForm').reset();
+                setDefaultDate();
             }
         }
 
-        // Initialize Google Sheet with headers
-        async function initializeSheet(sheetId) {
-            try {
-                // First, try to read existing data
-                const response = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`);
-                
-                if (!response.ok) {
-                    throw new Error('Cannot access the Google Sheet. Make sure it\'s publicly viewable.');
-                }
-                
-                const csvData = await response.text();
-                
-                // If sheet is empty or doesn't have proper headers, we'll note it
-                // (We can't write headers via this method, but we can inform the user)
-                if (!csvData.includes('Date') || !csvData.includes('Amount')) {
-                    console.log('Sheet appears to be new - user should add headers manually');
-                }
-                
-                return true;
-            } catch (error) {
-                throw new Error('Cannot connect to Google Sheet: ' + error.message);
-            }
-        }
-
-        // Load expenses from Google Sheet
-        async function loadExpensesFromSheet() {
-            if (!googleSheetId) return;
-            
-            showLoading(true);
+        async function connectToSheet() {
+            updateStatus('Connecting...', false);
             
             try {
                 const response = await fetch(`https://docs.google.com/spreadsheets/d/${googleSheetId}/gviz/tq?tqx=out:csv`);
                 
                 if (!response.ok) {
-                    throw new Error('Failed to load data from Google Sheets');
+                    throw new Error('Cannot access sheet');
                 }
                 
-                const csvData = await response.text();
-                expenses = parseCSVData(csvData);
+                isConnected = true;
+                updateStatus('Connected & Syncing', true);
+                document.getElementById('setupNotice').classList.add('hidden');
                 
-                showLoading(false);
+                await loadExpenses();
                 
             } catch (error) {
-                showLoading(false);
-                showError('Error loading data: ' + error.message);
+                isConnected = false;
+                updateStatus('Connection failed', false);
+                console.error('Connection error:', error);
             }
         }
 
-        // Parse CSV data from Google Sheets
-        function parseCSVData(csvData) {
+        async function loadExpenses() {
+            if (!googleSheetId) return;
+            
+            try {
+                const response = await fetch(`https://docs.google.com/spreadsheets/d/${googleSheetId}/gviz/tq?tqx=out:csv&_=${Date.now()}`);
+                const csvData = await response.text();
+                expenses = parseCSV(csvData);
+                displayExpenses();
+                
+            } catch (error) {
+                console.error('Load error:', error);
+            }
+        }
+
+        function parseCSV(csvData) {
             const lines = csvData.split('\n');
             const expenses = [];
             
-            // Skip header row
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
                 
-                // Parse CSV (handle quoted values)
                 const values = parseCSVLine(line);
                 if (values.length >= 5) {
                     expenses.push({
@@ -671,7 +480,6 @@
             return expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
         }
 
-        // Simple CSV line parser
         function parseCSVLine(line) {
             const values = [];
             let current = '';
@@ -694,35 +502,95 @@
             return values;
         }
 
-        // Add expense to Google Sheet (via Google Apps Script - requires separate setup)
         function addExpenseToSheet(expense) {
-  const params = new URLSearchParams(expense).toString();
-  const url = "https://script.google.com/macros/s/AKfycbxydcJGZW2ZlmUuhmOn0LNrsX2et1dNdOZNRTDnVS_NYR50ShVdJxtgnvkfBrWPbnhu/exec?callback=handleResponse&" + params;
+            const params = new URLSearchParams(expense).toString();
+            const url = "https://script.google.com/macros/s/AKfycbxydcJGZW2ZlmUuhmOn0LNrsX2et1dNdOZNRTDnVS_NYR50ShVdJxtgnvkfBrWPbnhu/exec?callback=handleResponse&" + params;
 
-  // Dynamically inject <script> to bypass CORS
-  const script = document.createElement("script");
-  script.src = url;
-  document.body.appendChild(script);
-}
+            const script = document.createElement("script");
+            script.src = url;
+            document.body.appendChild(script);
+        }
 
-function handleResponse(res) {
-  if (res.status === "success") {
-    console.log("✅ Expense added to Google Sheet");
-  } else {
-    console.error("❌ Failed to add expense:", res.message);
-  }
-}
+        function handleResponse(res) {
+            if (res.status === "success") {
+                console.log("✅ Expense synced");
+                updateSyncStatus('Synced', true);
+            } else {
+                console.error("❌ Sync failed:", res.message);
+                updateSyncStatus('Sync failed', false);
+            }
+        }
 
+        function displayExpenses() {
+            const list = document.getElementById('expenseList');
+            
+            if (expenses.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <p>No expenses yet.</p>
+                        <p style="margin-top: 8px; font-size: 0.85rem;">Click "Add Expense" to get started!</p>
+                    </div>
+                `;
+                return;
+            }
 
+            list.innerHTML = expenses.map(expense => `
+                <div class="expense-item">
+                    <div class="expense-details">
+                        <div class="expense-amount">₹${expense.amount.toFixed(2)}</div>
+                        <div class="expense-info">
+                            <span class="expense-category">${expense.category}</span>
+                            ${expense.subcategory ? `<span>•</span><span>${expense.subcategory}</span>` : ''}
+                            ${expense.description ? `<span>•</span><span>${expense.description}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="expense-date">${new Date(expense.date).toLocaleDateString('en-IN')}</div>
+                </div>
+            `).join('');
+        }
 
-        // Setup autocomplete dropdowns
+        // Form handling
+        document.getElementById('expenseForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!isConnected) {
+                alert('Please wait for connection...');
+                return;
+            }
+            
+            const expense = {
+                id: Date.now(),
+                amount: parseFloat(document.getElementById('amount').value),
+                date: document.getElementById('date').value,
+                category: document.getElementById('category').value,
+                subcategory: document.getElementById('subcategory').value,
+                description: document.getElementById('description').value
+            };
+            
+            // Optimistic update
+            expenses.unshift(expense);
+            displayExpenses();
+            
+            // Sync to sheet
+            addExpenseToSheet(expense);
+            updateSyncStatus('Syncing...', null);
+            
+            // Close form and reset
+            toggleForm();
+            
+            // Show success
+            const btn = document.getElementById('submitBtn');
+            btn.textContent = 'Added!';
+            setTimeout(() => btn.textContent = 'Add Expense', 2000);
+        });
+
+        // Dropdown setup
         function setupDropdowns() {
             const categoryInput = document.getElementById('category');
             const subcategoryInput = document.getElementById('subcategory');
             const categoryDropdown = document.getElementById('categoryDropdown');
             const subcategoryDropdown = document.getElementById('subcategoryDropdown');
 
-            // Category dropdown
             categoryInput.addEventListener('input', function() {
                 const value = this.value.toLowerCase();
                 const matches = Object.keys(expenseCategories).filter(cat => 
@@ -740,11 +608,6 @@ function handleResponse(res) {
                 setTimeout(() => categoryDropdown.classList.add('hidden'), 200);
             });
 
-            categoryInput.addEventListener('focus', function() {
-                if (this.value) updateSubcategories();
-            });
-
-            // Subcategory dropdown
             subcategoryInput.addEventListener('input', function() {
                 const category = categoryInput.value;
                 if (!expenseCategories[category]) return;
@@ -791,249 +654,42 @@ function handleResponse(res) {
             dropdown.classList.remove('hidden');
         }
 
-        // Setup tabs
-        function setupTabs() {
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const tabId = this.getAttribute('data-tab');
-                    
-                    // Update active tab
-                    tabs.forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    // Show corresponding content
-                    document.querySelectorAll('.tab-content').forEach(content => {
-                        content.classList.add('hidden');
-                    });
-                    document.getElementById(tabId + 'Tab').classList.remove('hidden');
-                });
-            });
-        }
-
-        // Set default date to today
         function setDefaultDate() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('date').value = today;
         }
 
-        // Handle form submission
-        document.getElementById('expenseForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            if (!isConnected) {
-                showError('Please connect to Google Sheets first');
-                return;
-            }
-            
-            const expense = {
-                id: Date.now(),
-                amount: parseFloat(document.getElementById('amount').value),
-                date: document.getElementById('date').value,
-                category: document.getElementById('category').value,
-                subcategory: document.getElementById('subcategory').value,
-                description: document.getElementById('description').value
-            };
-            
-            // Add to local array for immediate display
-            expenses.unshift(expense);
-            updateSummary();
-            displayExpenses();
-            displayCategorySummary();
-            displayMonthlySummary();
+        function updateStatus(message, connected) {
+            const statusText = document.getElementById('statusText');
+            statusText.textContent = message;
+            statusText.className = `status ${connected ? 'connected' : ''}`;
+        }
 
-            addExpenseToSheet(expense);
-            
-            // Show instruction for adding to Google Sheet
-            //showInfo(`Add this row to your Google Sheet:\n${expense.date},${expense.amount},"${expense.category}","${expense.subcategory}","${expense.description}"`);
-            
-            // Reset form
-            this.reset();
-            setDefaultDate();
-            
-            // Show success feedback
-            const btn = this.querySelector('button[type="submit"]');
-            const originalText = btn.textContent;
-            btn.textContent = 'Added! ✓';
-            btn.style.background = '#27ae60';
-            setTimeout(() => {
-                btn.textContent = originalText;
-                btn.style.background = '';
-            }, 1500);
+        function updateSyncStatus(message, success) {
+            const syncStatus = document.getElementById('syncStatus');
+            if (message) {
+                syncStatus.innerHTML = success === null ? 
+                    `<span class="loading"></span>${message}` : 
+                    message;
+                syncStatus.style.color = success ? '#059669' : '#dc2626';
+            } else {
+                syncStatus.innerHTML = '';
+            }
+        }
+
+        function startRealTimeSync() {
+            // Sync every 10 seconds if connected
+            syncInterval = setInterval(() => {
+                if (isConnected) {
+                    loadExpenses();
+                }
+            }, 10000);
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (syncInterval) clearInterval(syncInterval);
         });
-
-        // Update summary cards
-        function updateSummary() {
-            const now = new Date();
-            const weekStart = new Date(now);
-            weekStart.setDate(now.getDate() - now.getDay());
-            
-            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-            const yearStart = new Date(now.getFullYear(), 0, 1);
-
-            const weeklyExpenses = expenses.filter(exp => new Date(exp.date) >= weekStart);
-            const monthlyExpenses = expenses.filter(exp => new Date(exp.date) >= monthStart);
-            const yearlyExpenses = expenses.filter(exp => new Date(exp.date) >= yearStart);
-
-            document.getElementById('weeklyAmount').textContent = '₹' + weeklyExpenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2);
-            document.getElementById('weeklyCount').textContent = weeklyExpenses.length + ' expenses';
-
-            document.getElementById('monthlyAmount').textContent = '₹' + monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2);
-            document.getElementById('monthlyCount').textContent = monthlyExpenses.length + ' expenses';
-
-            document.getElementById('yearlyAmount').textContent = '₹' + yearlyExpenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2);
-            document.getElementById('yearlyCount').textContent = yearlyExpenses.length + ' expenses';
-
-            document.getElementById('totalAmount').textContent = '₹' + expenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2);
-            document.getElementById('totalCount').textContent = expenses.length + ' expenses';
-        }
-
-        // Display recent expenses
-        function displayExpenses() {
-            const list = document.getElementById('expenseList');
-            list.innerHTML = '';
-
-            if (expenses.length === 0) {
-                list.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;">No expenses found. Add your first expense or check your Google Sheet connection!</div>';
-                return;
-            }
-
-            expenses.slice(0, 50).forEach((expense, index) => {
-                const div = document.createElement('div');
-                div.className = 'expense-item';
-                div.innerHTML = `
-                    <div class="expense-info">
-                        <div class="expense-amount">₹${expense.amount.toFixed(2)}</div>
-                        <div class="expense-category">${expense.category}</div>
-                        ${expense.subcategory ? `<div class="expense-description">${expense.subcategory}</div>` : ''}
-                        ${expense.description ? `<div class="expense-description">${expense.description}</div>` : ''}
-                        <div class="expense-date">${new Date(expense.date).toLocaleDateString('en-IN')}</div>
-                    </div>
-                    <div style="font-size: 12px; color: #999;">Row ${index + 2}</div>
-                `;
-                list.appendChild(div);
-            });
-        }
-
-        // Display category summary
-        function displayCategorySummary() {
-            const summary = {};
-            expenses.forEach(expense => {
-                if (!summary[expense.category]) {
-                    summary[expense.category] = { total: 0, count: 0 };
-                }
-                summary[expense.category].total += expense.amount;
-                summary[expense.category].count++;
-            });
-
-            const container = document.getElementById('categorySummary');
-            container.innerHTML = '';
-
-            if (Object.keys(summary).length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No expense data available</div>';
-                return;
-            }
-
-            Object.entries(summary)
-                .sort(([,a], [,b]) => b.total - a.total)
-                .forEach(([category, data]) => {
-                    const div = document.createElement('div');
-                    div.className = 'category-item';
-                    div.innerHTML = `
-                        <h4>${category}</h4>
-                        <div class="currency">₹${data.total.toFixed(2)}</div>
-                        <div style="color: #666; font-size: 0.9rem;">${data.count} expenses</div>
-                    `;
-                    container.appendChild(div);
-                });
-        }
-
-        // Display monthly summary
-        function displayMonthlySummary() {
-            const summary = {};
-            expenses.forEach(expense => {
-                const monthYear = new Date(expense.date).toLocaleDateString('en-IN', { 
-                    year: 'numeric', 
-                    month: 'long' 
-                });
-                if (!summary[monthYear]) {
-                    summary[monthYear] = { total: 0, count: 0 };
-                }
-                summary[monthYear].total += expense.amount;
-                summary[monthYear].count++;
-            });
-
-            const container = document.getElementById('monthlySummary');
-            container.innerHTML = '';
-
-            if (Object.keys(summary).length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No expense data available</div>';
-                return;
-            }
-
-            Object.entries(summary)
-                .sort(([a], [b]) => new Date(b + ' 1, 2000').getTime() - new Date(a + ' 1, 2000').getTime())
-                .forEach(([month, data]) => {
-                    const div = document.createElement('div');
-                    div.className = 'category-item';
-                    div.innerHTML = `
-                        <h4>${month}</h4>
-                        <div class="currency">₹${data.total.toFixed(2)}</div>
-                        <div style="color: #666; font-size: 0.9rem;">${data.count} expenses</div>
-                    `;
-                    container.appendChild(div);
-                });
-        }
-
-        // Utility functions
-        function updateConnectionStatus(message, connected) {
-            document.getElementById('statusText').textContent = message;
-            const indicator = document.getElementById('statusIndicator');
-            indicator.textContent = connected ? 'Connected' : 'Disconnected';
-            indicator.className = `status-indicator ${connected ? 'status-connected' : 'status-disconnected'}`;
-        }
-
-        function showLoading(show) {
-            document.getElementById('loadingExpenses').classList.toggle('hidden', !show);
-        }
-
-        function showError(message) {
-            const errorDiv = document.getElementById('setupError');
-            errorDiv.textContent = message;
-            errorDiv.classList.remove('hidden');
-            setTimeout(() => errorDiv.classList.add('hidden'), 5000);
-        }
-
-        function showSuccess(message) {
-            const successDiv = document.getElementById('setupSuccess');
-            successDiv.textContent = message;
-            successDiv.classList.remove('hidden');
-            setTimeout(() => successDiv.classList.add('hidden'), 5000);
-        }
-
-        function showInfo(message) {
-            alert(message);
-        }
-
-        // Refresh data from Google Sheets
-        async function refreshData() {
-            if (!isConnected) return;
-            
-            updateConnectionStatus('Syncing...', true);
-            await loadExpensesFromSheet();
-            updateSummary();
-            displayExpenses();
-            displayCategorySummary();
-            displayMonthlySummary();
-            updateConnectionStatus('Connected to Google Sheets', true);
-        }
-
-        // Auto-refresh every 30 seconds if connected
-        setInterval(() => {
-            if (isConnected) {
-                refreshData();
-            }
-        }, 30000);
     </script>
 </body>
 </html>
