@@ -703,7 +703,7 @@
   const script = document.createElement("script");
   script.src = url;
   document.body.appendChild(script);
-            refreshData();
+            
 }
 
 function handleResponse(res) {
@@ -851,6 +851,8 @@ function handleResponse(res) {
             // Reset form
             this.reset();
             setDefaultDate();
+
+            refreshData();
             
             // Show success feedback
             const btn = this.querySelector('button[type="submit"]');
