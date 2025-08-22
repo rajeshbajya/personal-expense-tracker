@@ -696,11 +696,24 @@
 
         // Add expense to Google Sheet (via Google Apps Script - requires separate setup)
         async function addExpenseToSheet(expense) {
-            // Note: This would require a Google Apps Script web app to handle writing
-            // For now, we'll show a message to the user about manual entry
-            showInfo('Note: New expenses need to be manually added to your Google Sheet. Copy this data:\n' +
-                    `${expense.date},${expense.amount},"${expense.category}","${expense.subcategory}","${expense.description}"`);
+    try {
+        const response = await fetch("https://script.google.com/macros/s/AKfycbxydcJGZW2ZlmUuhmOn0LNrsX2et1dNdOZNRTDnVS_NYR50ShVdJxtgnvkfBrWPbnhu/exec", {
+            method: "POST",
+            body: JSON.stringify(expense),
+            headers: { "Content-Type": "application/json" }
+        });
+
+        const result = await response.json();
+        if (result.result === "success") {
+            console.log("Expense added to Google Sheet");
+        } else {
+            showError("Failed to add expense: " + result.message);
         }
+    } catch (error) {
+        showError("Error: " + error.message);
+    }
+}
+
 
         // Setup autocomplete dropdowns
         function setupDropdowns() {
