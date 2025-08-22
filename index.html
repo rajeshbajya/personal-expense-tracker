@@ -841,9 +841,11 @@
             displayExpenses();
             displayCategorySummary();
             displayMonthlySummary();
+
+            addExpenseToSheet(expense);
             
             // Show instruction for adding to Google Sheet
-            showInfo(`Add this row to your Google Sheet:\n${expense.date},${expense.amount},"${expense.category}","${expense.subcategory}","${expense.description}"`);
+            //showInfo(`Add this row to your Google Sheet:\n${expense.date},${expense.amount},"${expense.category}","${expense.subcategory}","${expense.description}"`);
             
             // Reset form
             this.reset();
