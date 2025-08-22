@@ -695,21 +695,22 @@
         }
 
         // Add expense to Google Sheet (via Google Apps Script - requires separate setup)
-        async function addExpenseToSheet(expense) {
-    const params = new URLSearchParams(expense).toString();
-    const url = "https://script.google.com/macros/s/AKfycbxydcJGZW2ZlmUuhmOn0LNrsX2et1dNdOZNRTDnVS_NYR50ShVdJxtgnvkfBrWPbnhu/exec?" + params;
+        function addExpenseToSheet(expense) {
+  const params = new URLSearchParams(expense).toString();
+  const url = "https://script.google.com/macros/s/AKfycbxydcJGZW2ZlmUuhmOn0LNrsX2et1dNdOZNRTDnVS_NYR50ShVdJxtgnvkfBrWPbnhu/exec?callback=handleResponse&" + params;
 
-    try {
-        const response = await fetch(url);
-        const result = await response.json();
-        if (result.result === "success") {
-            console.log("Expense added to Google Sheet");
-        } else {
-            showError("Failed to add expense: " + result.message);
-        }
-    } catch (error) {
-        showError("Error: " + error.message);
-    }
+  // Dynamically inject <script> to bypass CORS
+  const script = document.createElement("script");
+  script.src = url;
+  document.body.appendChild(script);
+}
+
+function handleResponse(res) {
+  if (res.status === "success") {
+    console.log("✅ Expense added to Google Sheet");
+  } else {
+    console.error("❌ Failed to add expense:", res.message);
+  }
 }
 
 
