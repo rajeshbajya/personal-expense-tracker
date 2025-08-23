@@ -216,9 +216,14 @@
             border-radius: 8px;
             margin-bottom: 8px;
             background: #f8f9fa;
+            position: relative;
         }
         .expense-item:hover {
             background-color: #e9ecef;
+        }
+        .expense-item.deleting {
+            opacity: 0.5;
+            pointer-events: none;
         }
         .expense-info {
             display: flex;
@@ -394,6 +399,101 @@
             border-radius: 6px;
             font-size: 14px;
         }
+        
+        /* Confirmation Modal */
+        .confirm-modal {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .confirm-modal h3 {
+            color: #dc3545;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        .confirm-modal p {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+        .confirm-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        .btn-confirm {
+            background: #dc3545;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-confirm:hover {
+            background: #c82333;
+        }
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-cancel:hover {
+            background: #5a6268;
+        }
+        
+        /* Loading spinner for expense items */
+        .expense-spinner {
+            position: absolute;
+            right: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #dc3545;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            color: #333;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-left: 4px solid #28a745;
+            z-index: 3000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .toast.show {
+            transform: translateX(0);
+        }
+        .toast.error {
+            border-left-color: #dc3545;
+        }
+        .toast-icon {
+            font-size: 18px;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -484,6 +584,11 @@
                 height: 32px;
                 font-size: 18px;
                 z-index: 10;
+            }
+            .expense-spinner {
+                right: 45px;
+                width: 16px;
+                height: 16px;
             }
             .btn-add {
                 bottom: 20px;
@@ -599,6 +704,20 @@
             }
             .dropdown-list {
                 max-height: 150px;
+            }
+            .confirm-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .toast {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                transform: translateY(-100px);
+                max-width: none;
+            }
+            .toast.show {
+                transform: translateY(0);
             }
             /* Make scrollable areas more touch-friendly */
             .expense-list,
@@ -869,11 +988,36 @@
                         <label for="description">Description</label>
                         <input type="text" id="description" class="form-control" placeholder="Brief description of the expense">
                     </div>
-                    <button type="submit" class="btn btn-primary" id="addExpenseBtn">Add Expense</button>
+                    <button type="submit" class="btn btn-primary" id="addExpenseBtn">
+                        <span class="btn-text">Add Expense</span>
+                        <div class="spinner hidden" style="width: 16px; height: 16px; border-width: 2px;"></div>
+                    </button>
                 </form>
             </div>
         </div>
+        
+        <!-- Confirmation Modal -->
+        <div class="modal" id="confirmModal">
+            <div class="confirm-modal">
+                <h3>⚠️ Delete Expense</h3>
+                <p id="confirmMessage">Are you sure you want to delete this expense? This action cannot be undone.</p>
+                <div class="confirm-buttons">
+                    <button class="btn-confirm" id="confirmYes">
+                        <span class="btn-text">Yes, Delete</span>
+                        <div class="spinner hidden" style="width: 16px; height: 16px; border-width: 2px; margin-left: 8px;"></div>
+                    </button>
+                    <button class="btn-cancel" id="confirmNo">Cancel</button>
+                </div>
+            </div>
+        </div>
     </div>
+    
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <span class="toast-icon">✓</span>
+        <span id="toastMessage">Success!</span>
+    </div>
+    
     <script>
         // Indian expense categories and subcategories
         const expenseCategories = {
@@ -890,10 +1034,13 @@
             'Investments': ['Mutual Funds', 'Fixed Deposit', 'Gold', 'Stocks', 'Insurance Premium'],
             'Miscellaneous': ['Bank Charges', 'ATM', 'Donations', 'Fines', 'Other']
         };
+        
         let expenses = [];
         let filteredExpenses = [];
         let googleSheetId = localStorage.getItem('googleSheetId') || '1bXjz2YTPzGKemfzWQMmr1fbovZRU04B2soSJsJQ7G7Y';
         let isConnected = false;
+        let pendingDeleteId = null;
+        
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
             setupDropdowns();
@@ -910,6 +1057,74 @@
                 connectGoogleSheet();
             }
         });
+        
+        // Toast notification functions
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = toast.querySelector('.toast-icon');
+            
+            toastMessage.textContent = message;
+            toast.className = `toast ${isError ? 'error' : ''}`;
+            toastIcon.textContent = isError ? '✗' : '✓';
+            
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+        
+        // Confirmation modal functions
+        function showConfirmModal(message, onConfirm) {
+            const modal = document.getElementById('confirmModal');
+            const messageEl = document.getElementById('confirmMessage');
+            const confirmBtn = document.getElementById('confirmYes');
+            const cancelBtn = document.getElementById('confirmNo');
+            
+            messageEl.textContent = message;
+            modal.classList.add('show');
+            
+            // Reset button states
+            const confirmBtnText = confirmBtn.querySelector('.btn-text');
+            const confirmSpinner = confirmBtn.querySelector('.spinner');
+            confirmBtnText.textContent = 'Yes, Delete';
+            confirmSpinner.classList.add('hidden');
+            confirmBtn.disabled = false;
+            
+            // Handle confirm
+            const handleConfirm = async () => {
+                confirmBtnText.textContent = 'Deleting...';
+                confirmSpinner.classList.remove('hidden');
+                confirmBtn.disabled = true;
+                
+                try {
+                    await onConfirm();
+                    modal.classList.remove('show');
+                } catch (error) {
+                    confirmBtnText.textContent = 'Yes, Delete';
+                    confirmSpinner.classList.add('hidden');
+                    confirmBtn.disabled = false;
+                    showToast('Failed to delete: ' + error.message, true);
+                }
+            };
+            
+            // Handle cancel
+            const handleCancel = () => {
+                modal.classList.remove('show');
+            };
+            
+            // Remove existing listeners
+            confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+            cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+            
+            // Add new listeners
+            const newConfirmBtn = document.getElementById('confirmYes');
+            const newCancelBtn = document.getElementById('confirmNo');
+            newConfirmBtn.addEventListener('click', handleConfirm);
+            newCancelBtn.addEventListener('click', handleCancel);
+        }
+        
         // Toggle collapse functionality
         function toggleCollapse(header) {
             const content = header.nextElementSibling;
@@ -923,24 +1138,36 @@
                 header.classList.add('expanded');
             }
         }
+        
         // Modal functions
         function openAddExpenseModal() {
             document.getElementById('addExpenseModal').classList.add('show');
             setDefaultDate();
         }
+        
         function closeAddExpenseModal() {
             document.getElementById('addExpenseModal').classList.remove('show');
             document.getElementById('expenseForm').reset();
             setDefaultDate();
+            
+            // Reset button state
+            const btn = document.getElementById('addExpenseBtn');
+            const btnText = btn.querySelector('.btn-text');
+            const spinner = btn.querySelector('.spinner');
+            btnText.textContent = 'Add Expense';
+            spinner.classList.add('hidden');
+            btn.disabled = false;
         }
+        
         // Connect to Google Sheet
         async function connectGoogleSheet() {
             const sheetId = document.getElementById('sheetId').value.trim();
            
             if (!sheetId) {
-                showError('Please enter a Google Sheet ID');
+                showToast('Please enter a Google Sheet ID', true);
                 return;
             }
+            
             updateConnectionStatus('Connecting...', false);
            
             try {
@@ -952,7 +1179,7 @@
                
                 document.getElementById('setupSection').classList.add('hidden');
                 updateConnectionStatus('Connected to Google Sheets', true);
-                showSuccess('Successfully connected to Google Sheets!');
+                showToast('Successfully connected to Google Sheets!');
                
                 await loadExpensesFromSheet();
                 updateSummary();
@@ -963,9 +1190,10 @@
             } catch (error) {
                 isConnected = false;
                 updateConnectionStatus('Connection Failed', false);
-                showError('Failed to connect: ' + error.message + '. Make sure the sheet is public and the ID is correct.');
+                showToast('Failed to connect: ' + error.message, true);
             }
         }
+        
         // Initialize Google Sheet with headers
         async function initializeSheet(sheetId) {
             try {
@@ -986,6 +1214,7 @@
                 throw new Error('Cannot connect to Google Sheet: ' + error.message);
             }
         }
+        
         // Load expenses from Google Sheet
         async function loadExpensesFromSheet() {
             if (!googleSheetId) return;
@@ -1006,9 +1235,10 @@
                
             } catch (error) {
                 showLoading(false);
-                showError('Error loading data: ' + error.message);
+                showToast('Error loading data: ' + error.message, true);
             }
         }
+        
         // Parse CSV data from Google Sheets
         function parseCSVData(csvData) {
             const lines = csvData.split('\n');
@@ -1034,6 +1264,7 @@
            
             return expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
         }
+        
         // Simple CSV line parser
         function parseCSVLine(line) {
             const values = [];
@@ -1056,42 +1287,47 @@
             values.push(current.trim().replace(/^"|"$/g, ''));
             return values;
         }
+        
         // Generate unique ID for expense
         function generateExpenseId() {
             return 'exp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         }
+        
         // Add expense to Google Sheet
         function addExpenseToSheet(expense) {
-            const params = new URLSearchParams(expense).toString();
-            const url = "https://script.google.com/macros/s/AKfycbxydcJGZW2ZlmUuhmOn0LNrsX2et1dNdOZNRTDnVS_NYR50ShVdJxtgnvkfBrWPbnhu/exec?callback=handleResponse&" + params;
-            const script = document.createElement("script");
-            script.src = url;
-            document.body.appendChild(script);
+            return new Promise((resolve, reject) => {
+                const params = new URLSearchParams(expense).toString();
+                const url = "https://script.google.com/macros/s/AKfycbxydcJGZW2ZlmUuhmOn0LNrsX2et1dNdOZNRTDnVS_NYR50ShVdJxtgnvkfBrWPbnhu/exec?callback=handleAddResponse&" + params;
+                
+                // Set up global callback
+                window.handleAddResponse = (res) => {
+                    if (res.status === "success") {
+                        resolve(res);
+                    } else {
+                        reject(new Error(res.message || 'Failed to add expense'));
+                    }
+                    // Clean up
+                    delete window.handleAddResponse;
+                    document.body.removeChild(script);
+                };
+                
+                const script = document.createElement("script");
+                script.src = url;
+                script.onerror = () => {
+                    reject(new Error('Network error'));
+                    delete window.handleAddResponse;
+                };
+                document.body.appendChild(script);
+            });
         }
-        function handleResponse(res) {
-            if (res.status === "success") {
-                console.log("✅ Expense added to Google Sheet");
-                // Update UI without full reload
-                updateUIAfterAdd();
-            } else {
-                console.error("❌ Failed to add expense:", res.message);
-                alert("Failed to add expense: " + res.message);
-            }
-        }
-        // Update UI after adding expense
-        function updateUIAfterAdd() {
-            applyFilters();
-            updateSummary();
-            displayExpenses();
-            displayCategorySummary();
-            displayMonthlySummary();
-        }
+        
         // Setup autocomplete dropdowns
         function setupDropdowns() {
             const categoryInput = document.getElementById('category');
             const subcategoryInput = document.getElementById('subcategory');
             const categoryDropdown = document.getElementById('categoryDropdown');
             const subcategoryDropdown = document.getElementById('subcategoryDropdown');
+            
             categoryInput.addEventListener('input', function() {
                 const value = this.value.toLowerCase();
                 const matches = Object.keys(expenseCategories).filter(cat =>
@@ -1104,15 +1340,19 @@
                     updateSubcategories();
                 });
             });
+            
             categoryInput.addEventListener('blur', function() {
                 setTimeout(() => categoryDropdown.classList.add('hidden'), 200);
             });
+            
             categoryInput.addEventListener('focus', function() {
                 if (this.value) updateSubcategories();
             });
+            
             subcategoryInput.addEventListener('input', function() {
                 const category = categoryInput.value;
                 if (!expenseCategories[category]) return;
+                
                 const value = this.value.toLowerCase();
                 const matches = expenseCategories[category].filter(subcat =>
                     subcat.toLowerCase().includes(value)
@@ -1122,9 +1362,11 @@
                     subcategoryDropdown.classList.add('hidden');
                 });
             });
+            
             subcategoryInput.addEventListener('blur', function() {
                 setTimeout(() => subcategoryDropdown.classList.add('hidden'), 200);
             });
+            
             function updateSubcategories() {
                 const category = categoryInput.value;
                 if (expenseCategories[category]) {
@@ -1135,12 +1377,14 @@
                 }
             }
         }
+        
         function showDropdown(dropdown, items, onSelect) {
             dropdown.innerHTML = '';
             if (items.length === 0) {
                 dropdown.classList.add('hidden');
                 return;
             }
+            
             items.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'dropdown-item';
@@ -1148,8 +1392,10 @@
                 div.addEventListener('click', () => onSelect(item));
                 dropdown.appendChild(div);
             });
+            
             dropdown.classList.remove('hidden');
         }
+        
         // Setup tabs
         function setupTabs() {
             const tabs = document.querySelectorAll('.tab');
@@ -1167,17 +1413,20 @@
                 });
             });
         }
+        
         // Setup filters
         function setupFilters() {
             const searchInput = document.getElementById('searchExpenses');
             const categoryFilter = document.getElementById('categoryFilter');
             const dateFromFilter = document.getElementById('dateFromFilter');
             const dateToFilter = document.getElementById('dateToFilter');
+            
             [searchInput, categoryFilter, dateFromFilter, dateToFilter].forEach(input => {
                 input.addEventListener('input', applyFilters);
                 input.addEventListener('change', applyFilters);
             });
         }
+        
         // Populate category filter dropdown
         function populateCategoryFilter() {
             const categoryFilter = document.getElementById('categoryFilter');
@@ -1188,25 +1437,32 @@
                 categoryFilter.appendChild(option);
             });
         }
+        
         // Apply filters
         function applyFilters() {
             const searchTerm = document.getElementById('searchExpenses').value.toLowerCase();
             const categoryFilter = document.getElementById('categoryFilter').value;
             const dateFromFilter = document.getElementById('dateFromFilter').value;
             const dateToFilter = document.getElementById('dateToFilter').value;
+            
             filteredExpenses = expenses.filter(expense => {
                 const matchesSearch = !searchTerm ||
                     expense.description.toLowerCase().includes(searchTerm) ||
                     expense.category.toLowerCase().includes(searchTerm) ||
                     expense.subcategory.toLowerCase().includes(searchTerm);
+                
                 const matchesCategory = !categoryFilter || expense.category === categoryFilter;
+                
                 const expenseDate = new Date(expense.date);
                 const matchesDateFrom = !dateFromFilter || expenseDate >= new Date(dateFromFilter);
                 const matchesDateTo = !dateToFilter || expenseDate <= new Date(dateToFilter);
+                
                 return matchesSearch && matchesCategory && matchesDateFrom && matchesDateTo;
             });
+            
             displayExpenses();
         }
+        
         // Clear filters
         function clearFilters() {
             document.getElementById('searchExpenses').value = '';
@@ -1215,19 +1471,30 @@
             document.getElementById('dateToFilter').value = '';
             applyFilters();
         }
+        
         // Set default date to today
         function setDefaultDate() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('date').value = today;
         }
+        
         // Handle form submission
-        document.getElementById('expenseForm').addEventListener('submit', function(e) {
+        document.getElementById('expenseForm').addEventListener('submit', async function(e) {
             e.preventDefault();
            
             if (!isConnected) {
-                showError('Please connect to Google Sheets first');
+                showToast('Please connect to Google Sheets first', true);
                 return;
             }
+            
+            const btn = document.getElementById('addExpenseBtn');
+            const btnText = btn.querySelector('.btn-text');
+            const spinner = btn.querySelector('.spinner');
+            
+            // Show loading state
+            btnText.textContent = 'Adding...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
            
             const expense = {
                 id: generateExpenseId(),
@@ -1237,25 +1504,41 @@
                 subcategory: document.getElementById('subcategory').value,
                 description: document.getElementById('description').value
             };
-           
-            // Add to local array for immediate display
-            expenses.unshift(expense);
-            updateUIAfterAdd();
-            addExpenseToSheet(expense);
-           
-            // Close modal and reset form
-            closeAddExpenseModal();
-           
-            // Show success feedback
-            const btn = this.querySelector('button[type="submit"]');
-            const originalText = btn.textContent;
-            btn.textContent = 'Added! ✓';
-            btn.style.background = '#27ae60';
-            setTimeout(() => {
-                btn.textContent = originalText;
-                btn.style.background = '';
-            }, 1500);
+            
+            try {
+                // Add to local array for immediate display
+                expenses.unshift(expense);
+                updateUIAfterAdd();
+                
+                // Add to Google Sheets
+                await addExpenseToSheet(expense);
+                
+                showToast('Expense added successfully!');
+                closeAddExpenseModal();
+                
+            } catch (error) {
+                // Remove from local array if failed
+                expenses = expenses.filter(exp => exp.id !== expense.id);
+                updateUIAfterAdd();
+                
+                showToast('Failed to add expense: ' + error.message, true);
+                
+                // Reset button state
+                btnText.textContent = 'Add Expense';
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
         });
+        
+        // Update UI after adding expense
+        function updateUIAfterAdd() {
+            applyFilters();
+            updateSummary();
+            displayExpenses();
+            displayCategorySummary();
+            displayMonthlySummary();
+        }
+        
         // Update summary cards
         function updateSummary() {
             const now = new Date();
@@ -1264,18 +1547,24 @@
            
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
             const yearStart = new Date(now.getFullYear(), 0, 1);
+            
             const weeklyExpenses = expenses.filter(exp => new Date(exp.date) >= weekStart);
             const monthlyExpenses = expenses.filter(exp => new Date(exp.date) >= monthStart);
             const yearlyExpenses = expenses.filter(exp => new Date(exp.date) >= yearStart);
+            
             document.getElementById('weeklyAmount').textContent = '₹' + weeklyExpenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2);
             document.getElementById('weeklyCount').textContent = weeklyExpenses.length + ' expenses';
+            
             document.getElementById('monthlyAmount').textContent = '₹' + monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2);
             document.getElementById('monthlyCount').textContent = monthlyExpenses.length + ' expenses';
+            
             document.getElementById('yearlyAmount').textContent = '₹' + yearlyExpenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2);
             document.getElementById('yearlyCount').textContent = yearlyExpenses.length + ' expenses';
+            
             document.getElementById('totalAmount').textContent = '₹' + expenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2);
             document.getElementById('totalCount').textContent = expenses.length + ' expenses';
         }
+        
         // Sort expenses
         function sortExpenses(expenses, sortBy) {
             const sorted = [...expenses];
@@ -1284,7 +1573,7 @@
                 case 'date-desc':
                     return sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
                 case 'date-asc':
-                    return sorted.sort((a, b) => new Date(a.date) - new Date(a.date));
+                    return sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
                 case 'amount-desc':
                     return sorted.sort((a, b) => b.amount - a.amount);
                 case 'amount-asc':
@@ -1295,6 +1584,7 @@
                     return sorted;
             }
         }
+        
         // Display recent expenses
         function displayExpenses() {
             const list = document.getElementById('expenseList');
@@ -1312,9 +1602,11 @@
                 list.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;">No expenses found.</div>';
                 return;
             }
+            
             sortedExpenses.slice(0, 100).forEach((expense) => {
                 const div = document.createElement('div');
                 div.className = 'expense-item';
+                div.setAttribute('data-expense-id', expense.id);
                 div.innerHTML = `
                     <div class="expense-info">
                         <div class="expense-amount">₹${expense.amount.toFixed(2)}</div>
@@ -1330,31 +1622,73 @@
                 list.appendChild(div);
             });
         }
+        
         function deleteExpense(expenseId) {
-            if (!confirm("Are you sure you want to delete this expense?")) return;
-            const url = `https://script.google.com/macros/s/AKfycbxydcJGZW2ZlmUuhmOn0LNrsX2et1dNdOZNRTDnVS_NYR50ShVdJxtgnvkfBrWPbnhu/exec?action=delete&id=${expenseId}&callback=handleDeleteResponse`;
-            const script = document.createElement("script");
-            script.src = url;
-            document.body.appendChild(script);
+            const expense = expenses.find(exp => exp.id === expenseId);
+            if (!expense) return;
+            
+            const message = `Delete expense of ₹${expense.amount.toFixed(2)} for ${expense.category}?`;
+            
+            showConfirmModal(message, async () => {
+                // Show loading state on the expense item
+                const expenseItem = document.querySelector(`[data-expense-id="${expenseId}"]`);
+                if (expenseItem) {
+                    expenseItem.classList.add('deleting');
+                    const spinner = document.createElement('div');
+                    spinner.className = 'expense-spinner';
+                    expenseItem.appendChild(spinner);
+                }
+                
+                try {
+                    await deleteExpenseFromSheet(expenseId);
+                    
+                    // Remove from local array
+                    expenses = expenses.filter(exp => exp.id !== expenseId);
+                    applyFilters();
+                    updateSummary();
+                    displayCategorySummary();
+                    displayMonthlySummary();
+                    
+                    showToast('Expense deleted successfully!');
+                    
+                } catch (error) {
+                    // Remove loading state if failed
+                    if (expenseItem) {
+                        expenseItem.classList.remove('deleting');
+                        const spinner = expenseItem.querySelector('.expense-spinner');
+                        if (spinner) spinner.remove();
+                    }
+                    throw error; // Re-throw to be caught by confirm modal
+                }
+            });
         }
-        function handleDeleteResponse(res) {
-            if (res.status === "success") {
-                console.log("✅ Expense deleted");
-                // Remove from local array immediately for better UX
-                const expenseId = res.deletedId; // We'll need to modify the server to return this
-                expenses = expenses.filter(exp => exp.id !== expenseId);
-                applyFilters();
-                updateSummary();
-                displayCategorySummary();
-                displayMonthlySummary();
-               
-                // Also refresh from server to ensure sync
-                setTimeout(() => refreshData(), 1000);
-            } else {
-                console.error("❌ Failed to delete:", res.message);
-                alert("Failed to delete expense: " + res.message);
-            }
+        
+        function deleteExpenseFromSheet(expenseId) {
+            return new Promise((resolve, reject) => {
+                const url = `https://script.google.com/macros/s/AKfycbxydcJGZW2ZlmUuhmOn0LNrsX2et1dNdOZNRTDnVS_NYR50ShVdJxtgnvkfBrWPbnhu/exec?action=delete&id=${expenseId}&callback=handleDeleteResponse`;
+                
+                // Set up global callback
+                window.handleDeleteResponse = (res) => {
+                    if (res.status === "success") {
+                        resolve(res);
+                    } else {
+                        reject(new Error(res.message || 'Failed to delete expense'));
+                    }
+                    // Clean up
+                    delete window.handleDeleteResponse;
+                    document.body.removeChild(script);
+                };
+                
+                const script = document.createElement("script");
+                script.src = url;
+                script.onerror = () => {
+                    reject(new Error('Network error'));
+                    delete window.handleDeleteResponse;
+                };
+                document.body.appendChild(script);
+            });
         }
+        
         // Display category summary
         function displayCategorySummary() {
             const summary = {};
@@ -1365,12 +1699,15 @@
                 summary[expense.category].total += expense.amount;
                 summary[expense.category].count++;
             });
+            
             const container = document.getElementById('categorySummary');
             container.innerHTML = '';
+            
             if (Object.keys(summary).length === 0) {
                 container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No expense data available</div>';
                 return;
             }
+            
             Object.entries(summary)
                 .sort(([,a], [,b]) => b.total - a.total)
                 .forEach(([category, data]) => {
@@ -1385,6 +1722,7 @@
                     container.appendChild(div);
                 });
         }
+        
         // Display monthly summary
         function displayMonthlySummary() {
             const summary = {};
@@ -1399,12 +1737,15 @@
                 summary[monthYear].total += expense.amount;
                 summary[monthYear].count++;
             });
+            
             const container = document.getElementById('monthlySummary');
             container.innerHTML = '';
+            
             if (Object.keys(summary).length === 0) {
                 container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No expense data available</div>';
                 return;
             }
+            
             Object.entries(summary)
                 .sort(([a], [b]) => new Date(b + ' 1, 2000').getTime() - new Date(a + ' 1, 2000').getTime())
                 .forEach(([month, data]) => {
@@ -1419,6 +1760,7 @@
                     container.appendChild(div);
                 });
         }
+        
         // Utility functions
         function updateConnectionStatus(message, connected) {
             document.getElementById('statusText').textContent = message;
@@ -1426,21 +1768,25 @@
             indicator.textContent = connected ? 'Connected' : 'Disconnected';
             indicator.className = `status-indicator ${connected ? 'status-connected' : 'status-disconnected'}`;
         }
+        
         function showLoading(show) {
             document.getElementById('loadingExpenses').classList.toggle('hidden', !show);
         }
+        
         function showError(message) {
             const errorDiv = document.getElementById('setupError');
             errorDiv.textContent = message;
             errorDiv.classList.remove('hidden');
             setTimeout(() => errorDiv.classList.add('hidden'), 5000);
         }
+        
         function showSuccess(message) {
             const successDiv = document.getElementById('setupSuccess');
             successDiv.textContent = message;
             successDiv.classList.remove('hidden');
             setTimeout(() => successDiv.classList.add('hidden'), 5000);
         }
+        
         // Refresh data from Google Sheets
         async function refreshData() {
             if (!isConnected) return;
@@ -1452,25 +1798,44 @@
             displayMonthlySummary();
             updateConnectionStatus('Connected to Google Sheets', true);
         }
+        
         // Close modal when clicking outside
         document.getElementById('addExpenseModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeAddExpenseModal();
             }
         });
+        
+        // Close confirm modal when clicking outside
+        document.getElementById('confirmModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('show');
+            }
+        });
+        
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
-            // Ctrl/Cmd + N to add new expense
+            // Ctrl/Cmd + L to add new expense
             if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
                 e.preventDefault();
                 openAddExpenseModal();
             }
            
-            // Escape to close modal
+            // Escape to close modals
             if (e.key === 'Escape') {
                 closeAddExpenseModal();
+                document.getElementById('confirmModal').classList.remove('show');
             }
         });
+        
+        // Initialize sort dropdown
+        document.getElementById('sortBy').innerHTML = `
+            <option value="date-desc">📅 Date (Newest first)</option>
+            <option value="date-asc">📅 Date (Oldest first)</option>
+            <option value="amount-desc">💰 Amount (High to Low)</option>
+            <option value="amount-asc">💰 Amount (Low to High)</option>
+            <option value="category">📂 Category</option>
+        `;
     </script>
 </body>
 </html>
