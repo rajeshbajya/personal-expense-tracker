@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Personal Expense Tracker with Google Sheets</title>
-    <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22&gt;&lt;text y=%22.9em%22 font-size=%2290%22&gt;💰&lt;/text&gt;&lt;/svg&gt;">
     <style>
         * {
             margin: 0;
@@ -459,11 +458,20 @@
 
         @media (max-width: 768px) {
             .container {
-                padding: 15px;
+                padding: 10px;
             }
 
             .header h1 {
-                font-size: 2rem;
+                font-size: 1.8rem;
+                margin-bottom: 8px;
+            }
+
+            .header p {
+                font-size: 0.9rem;
+            }
+
+            #connectionStatus {
+                font-size: 0.85rem;
             }
 
             .form-row {
@@ -471,37 +479,255 @@
             }
 
             .summary-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .summary-card {
+                padding: 15px;
+            }
+
+            .summary-card h3 {
+                font-size: 1rem;
+                margin-bottom: 8px;
+            }
+
+            .summary-card .amount {
+                font-size: 1.5rem;
             }
 
             .tabs {
                 overflow-x: auto;
                 white-space: nowrap;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+
+            .tabs::-webkit-scrollbar {
+                display: none;
+            }
+
+            .tab {
+                flex-shrink: 0;
+                padding: 10px 15px;
+                font-size: 0.9rem;
+            }
+
+            .expense-item {
+                padding: 10px 12px;
+                flex-direction: column;
+                align-items: stretch;
+                position: relative;
             }
 
             .expense-info {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 4px;
+                display: grid;
+                grid-template-columns: 1fr auto;
+                grid-template-rows: auto auto auto;
+                gap: 6px;
+                align-items: start;
+            }
+
+            .expense-amount {
+                grid-column: 1;
+                grid-row: 1;
+                font-size: 1.1rem;
+            }
+
+            .expense-category {
+                grid-column: 1;
+                grid-row: 2;
+                font-size: 0.9rem;
+                font-weight: 600;
+            }
+
+            .expense-description {
+                grid-column: 1;
+                grid-row: 3;
+                font-size: 0.85rem;
             }
 
             .expense-date {
-                text-align: left;
-                min-width: auto;
+                grid-column: 2;
+                grid-row: 1;
+                text-align: right;
+                font-size: 0.75rem;
+                color: #999;
+            }
+
+            .btn-danger {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                width: 24px;
+                height: 24px;
+                font-size: 14px;
             }
 
             .btn-add {
                 bottom: 20px;
                 right: 20px;
+                width: 56px;
+                height: 56px;
+                font-size: 20px;
+            }
+
+            .modal {
+                padding: 0;
             }
 
             .modal-content {
-                margin: 20px;
-                width: calc(100% - 40px);
+                margin: 0;
+                width: 100%;
+                height: 100vh;
+                max-height: none;
+                border-radius: 0;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .modal-header {
+                padding: 20px 20px 15px 20px;
+                border-bottom: 1px solid #eee;
+                flex-shrink: 0;
+            }
+
+            .modal-header h2 {
+                font-size: 1.3rem;
+            }
+
+            .modal form {
+                padding: 20px;
+                flex: 1;
+                overflow-y: auto;
             }
 
             .collapsible-content.expanded {
-                max-height: 300px;
+                max-height: none;
+                overflow-x: auto;
+                overflow-y: visible;
+            }
+
+            .collapsible-header {
+                padding: 15px 20px;
+            }
+
+            .collapsible-header h2 {
+                font-size: 1.2rem;
+            }
+
+            .card {
+                padding: 15px;
+                margin-bottom: 15px;
+                border-radius: 10px;
+            }
+
+            .filter-controls {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+
+            .filter-controls input,
+            .filter-controls select,
+            .filter-controls button {
+                width: 100%;
+                padding: 12px;
+                font-size: 16px;
+                border-radius: 8px;
+            }
+
+            .filter-row {
+                display: flex;
+                gap: 10px;
+            }
+
+            .filter-row input,
+            .filter-row select {
+                flex: 1;
+            }
+
+            .sort-controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .sort-controls select {
+                padding: 12px;
+                font-size: 16px;
+            }
+
+            .stats-row {
+                flex-direction: column;
+                gap: 5px;
+                font-size: 13px;
+                padding: 10px 0;
+                border-bottom: 1px solid #eee;
+                margin-bottom: 15px;
+            }
+
+            .category-summary {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .category-item {
+                padding: 12px;
+            }
+
+            .expense-list {
+                max-height: 60vh;
+            }
+
+            .setup-section {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+
+            .setup-steps {
+                font-size: 0.9rem;
+            }
+
+            .form-group {
+                margin-bottom: 15px;
+            }
+
+            .form-control {
+                padding: 12px 16px;
+                font-size: 16px;
+            }
+
+            .btn {
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+
+            .dropdown-list {
+                max-height: 150px;
+            }
+
+            /* Make scrollable areas more touch-friendly */
+            .expense-list,
+            .collapsible-content,
+            .tabs {
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Improve touch targets */
+            .expense-item:hover {
+                background-color: #f8f9fa;
+            }
+
+            .tab:active {
+                background-color: #e9ecef;
+            }
+
+            /* Fix iOS zoom on input focus */
+            .form-control,
+            select,
+            input {
+                font-size: 16px !important;
             }
         }
 
@@ -596,6 +822,12 @@
             margin-bottom: 20px;
             flex-wrap: wrap;
             align-items: center;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
         }
 
         .filter-controls input, .filter-controls select {
@@ -693,23 +925,27 @@
 
             <div id="recentTab" class="tab-content">
                 <div class="filter-controls">
-                    <input type="text" id="searchExpenses" placeholder="Search expenses..." />
-                    <select id="categoryFilter">
-                        <option value="">All Categories</option>
-                    </select>
-                    <input type="date" id="dateFromFilter" />
-                    <input type="date" id="dateToFilter" />
-                    <button class="btn" onclick="clearFilters()" style="padding: 8px 12px; font-size: 14px;">Clear</button>
+                    <input type="text" id="searchExpenses" placeholder="🔍 Search expenses..." />
+                    <div class="filter-row">
+                        <select id="categoryFilter">
+                            <option value="">All Categories</option>
+                        </select>
+                        <button class="btn" onclick="clearFilters()" style="padding: 12px; font-size: 14px; min-width: 80px;">Clear</button>
+                    </div>
+                    <div class="filter-row">
+                        <input type="date" id="dateFromFilter" placeholder="From date" />
+                        <input type="date" id="dateToFilter" placeholder="To date" />
+                    </div>
                 </div>
                 
                 <div class="sort-controls">
                     <label for="sortBy">Sort by:</label>
                     <select id="sortBy" onchange="displayExpenses()">
-                        <option value="date-desc">Date (Newest first)</option>
-                        <option value="date-asc">Date (Oldest first)</option>
-                        <option value="amount-desc">Amount (High to Low)</option>
-                        <option value="amount-asc">Amount (Low to High)</option>
-                        <option value="category">Category</option>
+                        <option value="date-desc">📅 Date (Newest first)</option>
+                        <option value="date-asc">📅 Date (Oldest first)</option>
+                        <option value="amount-desc">💰 Amount (High to Low)</option>
+                        <option value="amount-asc">💰 Amount (Low to High)</option>
+                        <option value="category">📂 Category</option>
                     </select>
                 </div>
 
