@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22&gt;&lt;text y=%22.9em%22 font-size=%2290%22&gt;💰&lt;/text&gt;&lt;/svg&gt;">
     <title>Personal Expense Tracker with Google Sheets</title>
     <style>
         * {
@@ -181,17 +182,18 @@
         .btn-danger {
             background: none;
             color: #dc3545;
-            padding: 6px;
-            font-size: 16px;
+            padding: 8px;
+            font-size: 18px;
             border: none;
             cursor: pointer;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
+            width: 36px;
+            height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
+            font-weight: bold;
         }
 
         .btn-danger:hover {
@@ -522,10 +524,11 @@
 
             .expense-info {
                 display: grid;
-                grid-template-columns: 1fr auto;
+                grid-template-columns: 1fr 80px;
                 grid-template-rows: auto auto auto;
                 gap: 6px;
                 align-items: start;
+                padding-right: 50px;
             }
 
             .expense-amount {
@@ -557,11 +560,12 @@
 
             .btn-danger {
                 position: absolute;
-                top: 8px;
-                right: 8px;
-                width: 24px;
-                height: 24px;
-                font-size: 14px;
+                top: 12px;
+                right: 12px;
+                width: 32px;
+                height: 32px;
+                font-size: 18px;
+                z-index: 10;
             }
 
             .btn-add {
@@ -1227,8 +1231,11 @@
         function handleResponse(res) {
             if (res.status === "success") {
                 console.log("✅ Expense added to Google Sheet");
+                // Automatically refresh data after successful add
+                setTimeout(() => refreshData(), 1500);
             } else {
                 console.error("❌ Failed to add expense:", res.message);
+                alert("Failed to add expense: " + res.message);
             }
         }
 
@@ -1428,7 +1435,8 @@
                 btn.style.background = '';
             }, 1500);
 
-            setTimeout(() => refreshData(), 1000);
+            // Refresh data automatically after a short delay to ensure server has processed
+            setTimeout(() => refreshData(), 2000);
         });
 
         // Update summary cards
@@ -1528,7 +1536,16 @@
         function handleDeleteResponse(res) {
             if (res.status === "success") {
                 console.log("✅ Expense deleted");
-                refreshData();
+                // Remove from local array immediately for better UX
+                const expenseId = res.deletedId; // We'll need to modify the server to return this
+                expenses = expenses.filter(exp => exp.id !== expenseId);
+                applyFilters();
+                updateSummary();
+                displayCategorySummary();
+                displayMonthlySummary();
+                
+                // Also refresh from server to ensure sync
+                setTimeout(() => refreshData(), 1000);
             } else {
                 console.error("❌ Failed to delete:", res.message);
                 alert("Failed to delete expense: " + res.message);
