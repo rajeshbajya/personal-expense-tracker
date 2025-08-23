@@ -647,9 +647,14 @@
                 display: flex;
                 gap: 10px;
             }
-            .filter-row input,
-            .filter-row select {
-                flex: 1;
+            .date-filter-group label {
+                font-size: 11px;
+                color: #667eea;
+                margin-bottom: 2px;
+            }
+            .date-filter-group input {
+                padding: 12px;
+                font-size: 16px;
             }
             .filter-row select {
                 width: 50%;
@@ -824,7 +829,25 @@
             gap: 10px;
             width: 100%;
         }
-        .filter-controls input, .filter-controls select {
+        .filter-controls input:not(.date-filter-group input), .filter-controls select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .date-filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+        .date-filter-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #667eea;
+            margin: 0;
+        }
+        .date-filter-group input {
             padding: 8px 12px;
             border: 1px solid #ddd;
             border-radius: 6px;
@@ -921,8 +944,14 @@
                         <button class="btn" onclick="clearFilters()" style="padding: 12px; font-size: 14px; min-width: 80px;">Clear</button>
                     </div>
                     <div class="filter-row">
-                        <input type="date" id="dateFromFilter" placeholder="From date" />
-                        <input type="date" id="dateToFilter" placeholder="To date" />
+                        <div class="date-filter-group">
+                            <label for="dateFromFilter">From:</label>
+                            <input type="date" id="dateFromFilter" />
+                        </div>
+                        <div class="date-filter-group">
+                            <label for="dateToFilter">To:</label>
+                            <input type="date" id="dateToFilter" />
+                        </div>
                     </div>
                 </div>
                
