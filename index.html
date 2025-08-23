@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Personal Expense Tracker with Google Sheets</title>
+    <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22&gt;&lt;text y=%22.9em%22 font-size=%2290%22&gt;💰&lt;/text&gt;&lt;/svg&gt;">
     <style>
         * {
             margin: 0;
@@ -43,6 +44,53 @@
             margin-bottom: 25px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             backdrop-filter: blur(10px);
+        }
+
+        .collapsible-section {
+            background: white;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .collapsible-header {
+            padding: 20px 25px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .collapsible-header:hover {
+            background: linear-gradient(135deg, #5a6fd8, #6a4190);
+        }
+
+        .collapsible-header h2 {
+            margin: 0;
+            font-size: 1.4rem;
+        }
+
+        .collapse-icon {
+            transition: transform 0.3s ease;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+            padding: 0 25px;
+        }
+
+        .collapsible-content.expanded {
+            max-height: 500px;
+            padding: 25px;
         }
 
         .form-group {
@@ -85,6 +133,9 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .btn-primary {
@@ -106,15 +157,47 @@
             background: #219a52;
         }
 
-        .btn-danger {
-            background: #e74c3c;
+        .btn-add {
+            background: #28a745;
             color: white;
-            padding: 6px 12px;
-            font-size: 12px;
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 20px rgba(40, 167, 69, 0.4);
+            z-index: 1000;
+        }
+
+        .btn-add:hover {
+            background: #218838;
+            transform: scale(1.1);
+        }
+
+        .btn-danger {
+            background: none;
+            color: #dc3545;
+            padding: 6px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
         }
 
         .btn-danger:hover {
-            background: #c0392b;
+            background: #dc3545;
+            color: white;
         }
 
         .btn:disabled {
@@ -127,7 +210,6 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
-            margin-bottom: 30px;
         }
 
         .summary-card {
@@ -152,7 +234,7 @@
         }
 
         .expense-list {
-            max-height: 400px;
+            max-height: 600px;
             overflow-y: auto;
         }
 
@@ -160,16 +242,22 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px;
+            padding: 12px 15px;
             border-bottom: 1px solid #eee;
             transition: background-color 0.3s;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
         }
 
         .expense-item:hover {
-            background-color: #f8f9fa;
+            background-color: #e9ecef;
         }
 
         .expense-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
             flex: 1;
         }
 
@@ -177,21 +265,26 @@
             font-weight: bold;
             color: #e74c3c;
             font-size: 1.1rem;
+            min-width: 80px;
         }
 
         .expense-category {
             color: #667eea;
             font-weight: 600;
+            min-width: 120px;
         }
 
         .expense-description {
             color: #666;
             font-size: 0.9rem;
+            flex: 1;
         }
 
         .expense-date {
             color: #999;
             font-size: 0.8rem;
+            min-width: 80px;
+            text-align: right;
         }
 
         .tabs {
@@ -290,6 +383,80 @@
             100% { transform: rotate(360deg); }
         }
 
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .modal-close:hover {
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        .sort-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .sort-controls label {
+            margin: 0;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .sort-controls select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -312,9 +479,29 @@
                 white-space: nowrap;
             }
 
-            .expense-item {
+            .expense-info {
                 flex-direction: column;
                 align-items: flex-start;
+                gap: 4px;
+            }
+
+            .expense-date {
+                text-align: left;
+                min-width: auto;
+            }
+
+            .btn-add {
+                bottom: 20px;
+                right: 20px;
+            }
+
+            .modal-content {
+                margin: 20px;
+                width: calc(100% - 40px);
+            }
+
+            .collapsible-content.expanded {
+                max-height: 300px;
             }
         }
 
@@ -402,6 +589,33 @@
             border: 1px solid #c3e6cb;
             color: #155724;
         }
+
+        .filter-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-controls input, .filter-controls select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .expanded .collapse-icon {
+            transform: rotate(180deg);
+        }
     </style>
 </head>
 <body>
@@ -421,6 +635,7 @@
             <p><strong>To sync your expenses with Google Sheets, follow these steps:</strong></p>
             <ol class="setup-steps">
                 <li>Create a new Google Sheet in your Google Drive</li>
+                <li>Add headers: ID | Date | Amount | Category | Subcategory | Description</li>
                 <li>Copy the Sheet ID from the URL (the long string between '/d/' and '/edit')</li>
                 <li>Make the sheet public: Share → Anyone with the link can view</li>
                 <li>Paste the Sheet ID below and click "Connect"</li>
@@ -436,65 +651,36 @@
             <div id="setupSuccess" class="alert alert-success hidden"></div>
         </div>
 
-        <!-- Summary Cards -->
-        <div class="summary-grid">
-            <div class="summary-card">
-                <h3>This Week</h3>
-                <div class="amount currency" id="weeklyAmount">₹0</div>
-                <div id="weeklyCount">0 expenses</div>
+        <!-- Collapsible Summary Cards -->
+        <div class="collapsible-section">
+            <div class="collapsible-header" onclick="toggleCollapse(this)">
+                <h2>📊 Expense Summary</h2>
+                <span class="collapse-icon">▼</span>
             </div>
-            <div class="summary-card">
-                <h3>This Month</h3>
-                <div class="amount currency" id="monthlyAmount">₹0</div>
-                <div id="monthlyCount">0 expenses</div>
-            </div>
-            <div class="summary-card">
-                <h3>This Year</h3>
-                <div class="amount currency" id="yearlyAmount">₹0</div>
-                <div id="yearlyCount">0 expenses</div>
-            </div>
-            <div class="summary-card">
-                <h3>Total</h3>
-                <div class="amount currency" id="totalAmount">₹0</div>
-                <div id="totalCount">0 expenses</div>
-            </div>
-        </div>
-
-        <!-- Add Expense Form -->
-        <div class="card">
-            <h2>Add New Expense</h2>
-            <form id="expenseForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="amount">Amount (₹)</label>
-                        <input type="number" id="amount" class="form-control" step="0.01" required>
+            <div class="collapsible-content">
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <h3>This Week</h3>
+                        <div class="amount currency" id="weeklyAmount">₹0</div>
+                        <div id="weeklyCount">0 expenses</div>
                     </div>
-                    <div class="form-group">
-                        <label for="date">Date</label>
-                        <input type="date" id="date" class="form-control" required>
+                    <div class="summary-card">
+                        <h3>This Month</h3>
+                        <div class="amount currency" id="monthlyAmount">₹0</div>
+                        <div id="monthlyCount">0 expenses</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3>This Year</h3>
+                        <div class="amount currency" id="yearlyAmount">₹0</div>
+                        <div id="yearlyCount">0 expenses</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Total</h3>
+                        <div class="amount currency" id="totalAmount">₹0</div>
+                        <div id="totalCount">0 expenses</div>
                     </div>
                 </div>
-
-                <div class="form-row">
-                    <div class="form-group dropdown">
-                        <label for="category">Category</label>
-                        <input type="text" id="category" class="form-control" autocomplete="off" required>
-                        <div class="dropdown-list hidden" id="categoryDropdown"></div>
-                    </div>
-                    <div class="form-group dropdown">
-                        <label for="subcategory">Subcategory</label>
-                        <input type="text" id="subcategory" class="form-control" autocomplete="off">
-                        <div class="dropdown-list hidden" id="subcategoryDropdown"></div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="description">Description</label>
-                    <input type="text" id="description" class="form-control" placeholder="Brief description of the expense">
-                </div>
-
-                <button type="submit" class="btn btn-primary" id="addExpenseBtn">Add Expense</button>
-            </form>
+            </div>
         </div>
 
         <!-- Expense List and Analysis -->
@@ -506,6 +692,32 @@
             </div>
 
             <div id="recentTab" class="tab-content">
+                <div class="filter-controls">
+                    <input type="text" id="searchExpenses" placeholder="Search expenses..." />
+                    <select id="categoryFilter">
+                        <option value="">All Categories</option>
+                    </select>
+                    <input type="date" id="dateFromFilter" />
+                    <input type="date" id="dateToFilter" />
+                    <button class="btn" onclick="clearFilters()" style="padding: 8px 12px; font-size: 14px;">Clear</button>
+                </div>
+                
+                <div class="sort-controls">
+                    <label for="sortBy">Sort by:</label>
+                    <select id="sortBy" onchange="displayExpenses()">
+                        <option value="date-desc">Date (Newest first)</option>
+                        <option value="date-asc">Date (Oldest first)</option>
+                        <option value="amount-desc">Amount (High to Low)</option>
+                        <option value="amount-asc">Amount (Low to High)</option>
+                        <option value="category">Category</option>
+                    </select>
+                </div>
+
+                <div class="stats-row">
+                    <span id="expenseStats">Showing all expenses</span>
+                    <span id="totalShowing">Total: ₹0</span>
+                </div>
+
                 <div id="loadingExpenses" class="loading hidden">
                     <div class="spinner"></div> Loading expenses...
                 </div>
@@ -518,6 +730,51 @@
 
             <div id="monthlyTab" class="tab-content hidden">
                 <div class="category-summary" id="monthlySummary"></div>
+            </div>
+        </div>
+
+        <!-- Floating Add Button -->
+        <button class="btn-add" onclick="openAddExpenseModal()">+</button>
+
+        <!-- Add Expense Modal -->
+        <div class="modal" id="addExpenseModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Add New Expense</h2>
+                    <button class="modal-close" onclick="closeAddExpenseModal()">×</button>
+                </div>
+                <form id="expenseForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="amount">Amount (₹)</label>
+                            <input type="number" id="amount" class="form-control" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="date">Date</label>
+                            <input type="date" id="date" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group dropdown">
+                            <label for="category">Category</label>
+                            <input type="text" id="category" class="form-control" autocomplete="off" required>
+                            <div class="dropdown-list hidden" id="categoryDropdown"></div>
+                        </div>
+                        <div class="form-group dropdown">
+                            <label for="subcategory">Subcategory</label>
+                            <input type="text" id="subcategory" class="form-control" autocomplete="off">
+                            <div class="dropdown-list hidden" id="subcategoryDropdown"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <input type="text" id="description" class="form-control" placeholder="Brief description of the expense">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="addExpenseBtn">Add Expense</button>
+                </form>
             </div>
         </div>
     </div>
@@ -540,6 +797,7 @@
         };
 
         let expenses = [];
+        let filteredExpenses = [];
         let googleSheetId = localStorage.getItem('googleSheetId') || '1bXjz2YTPzGKemfzWQMmr1fbovZRU04B2soSJsJQ7G7Y';
         let isConnected = false;
 
@@ -547,7 +805,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             setupDropdowns();
             setupTabs();
+            setupFilters();
             setDefaultDate();
+            populateCategoryFilter();
             
             // Pre-fill with your sheet ID
             document.getElementById('sheetId').value = googleSheetId;
@@ -558,6 +818,32 @@
             }
         });
 
+        // Toggle collapse functionality
+        function toggleCollapse(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.collapse-icon');
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                header.classList.remove('expanded');
+            } else {
+                content.classList.add('expanded');
+                header.classList.add('expanded');
+            }
+        }
+
+        // Modal functions
+        function openAddExpenseModal() {
+            document.getElementById('addExpenseModal').classList.add('show');
+            setDefaultDate();
+        }
+
+        function closeAddExpenseModal() {
+            document.getElementById('addExpenseModal').classList.remove('show');
+            document.getElementById('expenseForm').reset();
+            setDefaultDate();
+        }
+
         // Connect to Google Sheet
         async function connectGoogleSheet() {
             const sheetId = document.getElementById('sheetId').value.trim();
@@ -567,11 +853,9 @@
                 return;
             }
 
-            // Update UI to show connecting state
             updateConnectionStatus('Connecting...', false);
             
             try {
-                // Test connection by trying to read from the sheet
                 await initializeSheet(sheetId);
                 
                 googleSheetId = sheetId;
@@ -582,7 +866,6 @@
                 updateConnectionStatus('Connected to Google Sheets', true);
                 showSuccess('Successfully connected to Google Sheets!');
                 
-                // Load existing data
                 await loadExpensesFromSheet();
                 updateSummary();
                 displayExpenses();
@@ -599,7 +882,6 @@
         // Initialize Google Sheet with headers
         async function initializeSheet(sheetId) {
             try {
-                // First, try to read existing data
                 const response = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`);
                 
                 if (!response.ok) {
@@ -608,9 +890,7 @@
                 
                 const csvData = await response.text();
                 
-                // If sheet is empty or doesn't have proper headers, we'll note it
-                // (We can't write headers via this method, but we can inform the user)
-                if (!csvData.includes('Date') || !csvData.includes('Amount')) {
+                if (!csvData.includes('ID') || !csvData.includes('Amount')) {
                     console.log('Sheet appears to be new - user should add headers manually');
                 }
                 
@@ -635,7 +915,7 @@
                 
                 const csvData = await response.text();
                 expenses = parseCSVData(csvData);
-                
+                applyFilters();
                 showLoading(false);
                 
             } catch (error) {
@@ -654,16 +934,15 @@
                 const line = lines[i].trim();
                 if (!line) continue;
                 
-                // Parse CSV (handle quoted values)
                 const values = parseCSVLine(line);
-                if (values.length >= 5) {
+                if (values.length >= 6) {
                     expenses.push({
-                        id: Date.now() + i,
-                        date: values[0],
-                        amount: parseFloat(values[1]) || 0,
-                        category: values[2],
-                        subcategory: values[3],
-                        description: values[4]
+                        id: values[0] || Date.now() + i,
+                        date: values[1],
+                        amount: parseFloat(values[2]) || 0,
+                        category: values[3],
+                        subcategory: values[4],
+                        description: values[5]
                     });
                 }
             }
@@ -694,27 +973,28 @@
             return values;
         }
 
-        // Add expense to Google Sheet (via Google Apps Script - requires separate setup)
+        // Generate unique ID for expense
+        function generateExpenseId() {
+            return 'exp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Add expense to Google Sheet
         function addExpenseToSheet(expense) {
-  const params = new URLSearchParams(expense).toString();
-  const url = "https://script.google.com/macros/s/AKfycbxydcJGZW2ZlmUuhmOn0LNrsX2et1dNdOZNRTDnVS_NYR50ShVdJxtgnvkfBrWPbnhu/exec?callback=handleResponse&" + params;
+            const params = new URLSearchParams(expense).toString();
+            const url = "https://script.google.com/macros/s/AKfycbxydcJGZW2ZlmUuhmOn0LNrsX2et1dNdOZNRTDnVS_NYR50ShVdJxtgnvkfBrWPbnhu/exec?callback=handleResponse&" + params;
 
-  // Dynamically inject <script> to bypass CORS
-  const script = document.createElement("script");
-  script.src = url;
-  document.body.appendChild(script);
-            
-}
+            const script = document.createElement("script");
+            script.src = url;
+            document.body.appendChild(script);
+        }
 
-function handleResponse(res) {
-  if (res.status === "success") {
-    console.log("✅ Expense added to Google Sheet");
-  } else {
-    console.error("❌ Failed to add expense:", res.message);
-  }
-}
-
-
+        function handleResponse(res) {
+            if (res.status === "success") {
+                console.log("✅ Expense added to Google Sheet");
+            } else {
+                console.error("❌ Failed to add expense:", res.message);
+            }
+        }
 
         // Setup autocomplete dropdowns
         function setupDropdowns() {
@@ -723,7 +1003,6 @@ function handleResponse(res) {
             const categoryDropdown = document.getElementById('categoryDropdown');
             const subcategoryDropdown = document.getElementById('subcategoryDropdown');
 
-            // Category dropdown
             categoryInput.addEventListener('input', function() {
                 const value = this.value.toLowerCase();
                 const matches = Object.keys(expenseCategories).filter(cat => 
@@ -745,7 +1024,6 @@ function handleResponse(res) {
                 if (this.value) updateSubcategories();
             });
 
-            // Subcategory dropdown
             subcategoryInput.addEventListener('input', function() {
                 const category = categoryInput.value;
                 if (!expenseCategories[category]) return;
@@ -799,17 +1077,73 @@ function handleResponse(res) {
                 tab.addEventListener('click', function() {
                     const tabId = this.getAttribute('data-tab');
                     
-                    // Update active tab
                     tabs.forEach(t => t.classList.remove('active'));
                     this.classList.add('active');
                     
-                    // Show corresponding content
                     document.querySelectorAll('.tab-content').forEach(content => {
                         content.classList.add('hidden');
                     });
                     document.getElementById(tabId + 'Tab').classList.remove('hidden');
                 });
             });
+        }
+
+        // Setup filters
+        function setupFilters() {
+            const searchInput = document.getElementById('searchExpenses');
+            const categoryFilter = document.getElementById('categoryFilter');
+            const dateFromFilter = document.getElementById('dateFromFilter');
+            const dateToFilter = document.getElementById('dateToFilter');
+
+            [searchInput, categoryFilter, dateFromFilter, dateToFilter].forEach(input => {
+                input.addEventListener('input', applyFilters);
+                input.addEventListener('change', applyFilters);
+            });
+        }
+
+        // Populate category filter dropdown
+        function populateCategoryFilter() {
+            const categoryFilter = document.getElementById('categoryFilter');
+            Object.keys(expenseCategories).forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                categoryFilter.appendChild(option);
+            });
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchExpenses').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const dateFromFilter = document.getElementById('dateFromFilter').value;
+            const dateToFilter = document.getElementById('dateToFilter').value;
+
+            filteredExpenses = expenses.filter(expense => {
+                const matchesSearch = !searchTerm || 
+                    expense.description.toLowerCase().includes(searchTerm) ||
+                    expense.category.toLowerCase().includes(searchTerm) ||
+                    expense.subcategory.toLowerCase().includes(searchTerm);
+
+                const matchesCategory = !categoryFilter || expense.category === categoryFilter;
+
+                const expenseDate = new Date(expense.date);
+                const matchesDateFrom = !dateFromFilter || expenseDate >= new Date(dateFromFilter);
+                const matchesDateTo = !dateToFilter || expenseDate <= new Date(dateToFilter);
+
+                return matchesSearch && matchesCategory && matchesDateFrom && matchesDateTo;
+            });
+
+            displayExpenses();
+        }
+
+        // Clear filters
+        function clearFilters() {
+            document.getElementById('searchExpenses').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('dateFromFilter').value = '';
+            document.getElementById('dateToFilter').value = '';
+            applyFilters();
         }
 
         // Set default date to today
@@ -828,7 +1162,7 @@ function handleResponse(res) {
             }
             
             const expense = {
-                id: Date.now(),
+                id: generateExpenseId(),
                 amount: parseFloat(document.getElementById('amount').value),
                 date: document.getElementById('date').value,
                 category: document.getElementById('category').value,
@@ -838,21 +1172,15 @@ function handleResponse(res) {
             
             // Add to local array for immediate display
             expenses.unshift(expense);
+            applyFilters();
             updateSummary();
-            displayExpenses();
             displayCategorySummary();
             displayMonthlySummary();
 
             addExpenseToSheet(expense);
             
-            // Show instruction for adding to Google Sheet
-            //showInfo(`Add this row to your Google Sheet:\n${expense.date},${expense.amount},"${expense.category}","${expense.subcategory}","${expense.description}"`);
-            
-            // Reset form
-            this.reset();
-            setDefaultDate();
-
-            refreshData();
+            // Close modal and reset form
+            closeAddExpenseModal();
             
             // Show success feedback
             const btn = this.querySelector('button[type="submit"]');
@@ -863,6 +1191,8 @@ function handleResponse(res) {
                 btn.textContent = originalText;
                 btn.style.background = '';
             }, 1500);
+
+            setTimeout(() => refreshData(), 1000);
         });
 
         // Update summary cards
@@ -891,54 +1221,83 @@ function handleResponse(res) {
             document.getElementById('totalCount').textContent = expenses.length + ' expenses';
         }
 
+        // Sort expenses
+        function sortExpenses(expenses, sortBy) {
+            const sorted = [...expenses];
+            
+            switch(sortBy) {
+                case 'date-desc':
+                    return sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
+                case 'date-asc':
+                    return sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
+                case 'amount-desc':
+                    return sorted.sort((a, b) => b.amount - a.amount);
+                case 'amount-asc':
+                    return sorted.sort((a, b) => a.amount - b.amount);
+                case 'category':
+                    return sorted.sort((a, b) => a.category.localeCompare(b.category));
+                default:
+                    return sorted;
+            }
+        }
+
         // Display recent expenses
         function displayExpenses() {
-  const list = document.getElementById('expenseList');
-  list.innerHTML = '';
+            const list = document.getElementById('expenseList');
+            const sortBy = document.getElementById('sortBy').value;
+            
+            const sortedExpenses = sortExpenses(filteredExpenses, sortBy);
+            
+            // Update stats
+            const total = sortedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            document.getElementById('expenseStats').textContent = `Showing ${sortedExpenses.length} of ${expenses.length} expenses`;
+            document.getElementById('totalShowing').textContent = `Total: ₹${total.toFixed(2)}`;
+            
+            list.innerHTML = '';
 
-  if (expenses.length === 0) {
-    list.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;">No expenses found.</div>';
-    return;
-  }
+            if (sortedExpenses.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;">No expenses found.</div>';
+                return;
+            }
 
-  expenses.slice(0, 50).forEach((expense, index) => {
-    const rowNumber = index + 2; // Since row 1 = headers
-    const div = document.createElement('div');
-    div.className = 'expense-item';
-    div.innerHTML = `
-      <div class="expense-info">
-        <div class="expense-amount">₹${expense.amount.toFixed(2)}</div>
-        <div class="expense-category">${expense.category}</div>
-        ${expense.subcategory ? `<div class="expense-description">${expense.subcategory}</div>` : ''}
-        ${expense.description ? `<div class="expense-description">${expense.description}</div>` : ''}
-        <div class="expense-date">${new Date(expense.date).toLocaleDateString('en-IN')}</div>
-      </div>
-      <button class="btn btn-danger" onclick="deleteExpense(${rowNumber})">Delete</button>
-    `;
-    list.appendChild(div);
-  });
-}
+            sortedExpenses.slice(0, 100).forEach((expense) => {
+                const div = document.createElement('div');
+                div.className = 'expense-item';
+                div.innerHTML = `
+                    <div class="expense-info">
+                        <div class="expense-amount">₹${expense.amount.toFixed(2)}</div>
+                        <div class="expense-category">${expense.category}</div>
+                        <div class="expense-description">
+                            ${expense.subcategory ? expense.subcategory : ''}
+                            ${expense.description ? (expense.subcategory ? ' • ' : '') + expense.description : ''}
+                        </div>
+                        <div class="expense-date">${new Date(expense.date).toLocaleDateString('en-IN')}</div>
+                    </div>
+                    <button class="btn-danger" onclick="deleteExpense('${expense.id}')" title="Delete expense">×</button>
+                `;
+                list.appendChild(div);
+            });
+        }
 
-function deleteExpense(row) {
-  if (!confirm("Are you sure you want to delete this expense?")) return;
+        function deleteExpense(expenseId) {
+            if (!confirm("Are you sure you want to delete this expense?")) return;
 
-  const url = "https://script.google.com/macros/s/AKfycbxydcJGZW2ZlmUuhmOn0LNrsX2et1dNdOZNRTDnVS_NYR50ShVdJxtgnvkfBrWPbnhu/exec?action=delete&row=" + row + "&callback=handleDeleteResponse";
+            const url = `https://script.google.com/macros/s/AKfycbxydcJGZW2ZlmUuhmOn0LNrsX2et1dNdOZNRTDnVS_NYR50ShVdJxtgnvkfBrWPbnhu/exec?action=delete&id=${expenseId}&callback=handleDeleteResponse`;
 
-  const script = document.createElement("script");
-  script.src = url;
-  document.body.appendChild(script);
-}
+            const script = document.createElement("script");
+            script.src = url;
+            document.body.appendChild(script);
+        }
 
-function handleDeleteResponse(res) {
-  if (res.status === "success") {
-    console.log("✅ Expense deleted");
-    refreshData(); // Reload expenses
-  } else {
-    console.error("❌ Failed to delete:", res.message);
-    alert("Failed to delete expense: " + res.message);
-  }
-}
-
+        function handleDeleteResponse(res) {
+            if (res.status === "success") {
+                console.log("✅ Expense deleted");
+                refreshData();
+            } else {
+                console.error("❌ Failed to delete:", res.message);
+                alert("Failed to delete expense: " + res.message);
+            }
+        }
 
         // Display category summary
         function displayCategorySummary() {
@@ -962,12 +1321,13 @@ function handleDeleteResponse(res) {
             Object.entries(summary)
                 .sort(([,a], [,b]) => b.total - a.total)
                 .forEach(([category, data]) => {
+                    const percentage = ((data.total / expenses.reduce((sum, exp) => sum + exp.amount, 0)) * 100).toFixed(1);
                     const div = document.createElement('div');
                     div.className = 'category-item';
                     div.innerHTML = `
                         <h4>${category}</h4>
                         <div class="currency">₹${data.total.toFixed(2)}</div>
-                        <div style="color: #666; font-size: 0.9rem;">${data.count} expenses</div>
+                        <div style="color: #666; font-size: 0.9rem;">${data.count} expenses • ${percentage}%</div>
                     `;
                     container.appendChild(div);
                 });
@@ -999,12 +1359,13 @@ function handleDeleteResponse(res) {
             Object.entries(summary)
                 .sort(([a], [b]) => new Date(b + ' 1, 2000').getTime() - new Date(a + ' 1, 2000').getTime())
                 .forEach(([month, data]) => {
+                    const avgPerDay = (data.total / new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()).toFixed(2);
                     const div = document.createElement('div');
                     div.className = 'category-item';
                     div.innerHTML = `
                         <h4>${month}</h4>
                         <div class="currency">₹${data.total.toFixed(2)}</div>
-                        <div style="color: #666; font-size: 0.9rem;">${data.count} expenses</div>
+                        <div style="color: #666; font-size: 0.9rem;">${data.count} expenses • ₹${avgPerDay}/day avg</div>
                     `;
                     container.appendChild(div);
                 });
@@ -1036,10 +1397,6 @@ function handleDeleteResponse(res) {
             setTimeout(() => successDiv.classList.add('hidden'), 5000);
         }
 
-        function showInfo(message) {
-            alert(message);
-        }
-
         // Refresh data from Google Sheets
         async function refreshData() {
             if (!isConnected) return;
@@ -1047,18 +1404,31 @@ function handleDeleteResponse(res) {
             updateConnectionStatus('Syncing...', true);
             await loadExpensesFromSheet();
             updateSummary();
-            displayExpenses();
             displayCategorySummary();
             displayMonthlySummary();
             updateConnectionStatus('Connected to Google Sheets', true);
         }
 
-        // Auto-refresh every 30 seconds if connected
-        // setInterval(() => {
-        //     if (isConnected) {
-        //         refreshData();
-        //     }
-        // }, 30000);
+        // Close modal when clicking outside
+        document.getElementById('addExpenseModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddExpenseModal();
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + N to add new expense
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                openAddExpenseModal();
+            }
+            
+            // Escape to close modal
+            if (e.key === 'Escape') {
+                closeAddExpenseModal();
+            }
+        });
     </script>
 </body>
 </html>
