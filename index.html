@@ -1572,7 +1572,9 @@
         function updateSummary() {
             const now = new Date();
             const weekStart = new Date(now);
-            weekStart.setDate(now.getDate() - now.getDay());
+            const day = (now.getDay() + 6) % 7;
+            // weekStart.setDate(now.getDate() - now.getDay());
+            weekStart.setDate(now.getDate() - day);
             weekStart.setHours(0, 0, 0, 0);
            
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
